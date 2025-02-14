@@ -1,0 +1,6 @@
+# Model weights
+*.h5
+*.hdf5
+
+# datasets
+*.csv
