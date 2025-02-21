@@ -92,7 +92,112 @@ class NetworkMonitor:
         except Exception as e:
             logger.error(f"Failed to load model from {model_path}: {e}")
             raise
+
+    def generate_synthetic_data(self, normal: bool = True) -> Dict[str, Any]:
+        """Generate synthetic network traffic data for a single flow.
         
+        The returned dictionary includes keys corresponding to your dataset features.
+        Here we assume a feature order (example for 19 features):
+        ['Seq', 'Dur', 'sHops', 'dHops', 'SrcPkts', 'TotBytes', 'SrcBytes', 'Offset',
+         'sMeanPktSz', 'dMeanPktSz', 'TcpRtt', 'AckDat', 'sTtl_', 'dTtl_', 
+        'Proto_tcp', 'Proto_udp', 'Cause_Status', 'State_INT']
+        """
+        if normal:
+            return {
+                "timestamp": datetime.now(),
+                "Seq": np.random.randint(1, 100000),
+                "Dur": np.random.normal(loc=1.0, scale=0.2),
+                "sHops": np.random.randint(1, 10),
+                "dHops": np.random.randint(1, 10),
+                "SrcPkts": np.random.randint(10, 30),
+                "TotBytes": np.random.normal(loc=1500, scale=300),
+                "SrcBytes": np.random.normal(loc=800, scale=200),
+                "Offset": np.random.randint(0, 10),
+                "sMeanPktSz": np.random.normal(loc=50, scale=10),
+                "dMeanPktSz": np.random.normal(loc=50, scale=10),
+                "TcpRtt": np.random.normal(loc=100, scale=20),
+                "AckDat": np.random.randint(0, 2),
+                "sTtl_": np.random.randint(50, 70),
+                "dTtl_": np.random.randint(50, 70),
+                "Proto_tcp": 1,
+                "Proto_udp": 0,
+                "Cause_Status": 0,
+                "State_INT": 0
+            }
+        else:
+            return {
+                "timestamp": datetime.now(),
+                "Seq": np.random.randint(1, 100000),
+                "Dur": np.random.normal(loc=10.0, scale=2.0),
+                "sHops": np.random.randint(1, 10),
+                "dHops": np.random.randint(1, 10),
+                "SrcPkts": np.random.randint(30, 60),
+                "TotBytes": np.random.normal(loc=5000, scale=1000),
+                "SrcBytes": np.random.normal(loc=3000, scale=500),
+                "Offset": np.random.randint(0, 20),
+                "sMeanPktSz": np.random.normal(loc=100, scale=20),
+                "dMeanPktSz": np.random.normal(loc=100, scale=20),
+                "TcpRtt": np.random.normal(loc=300, scale=50),
+                "AckDat": np.random.randint(0, 2),
+                "sTtl_": np.random.randint(20, 40),
+                "dTtl_": np.random.randint(20, 40),
+                "Proto_tcp": 0,
+                "Proto_udp": 1,
+                "Cause_Status": 1,
+                "State_INT": 1
+            }
+            
+    def extract_features(self, data: Dict[str, Any]) -> List[float]:
+        """Extract features from the data dictionary in the required order.
+        
+        Adjust the order here to match your dataset.
+        """
+        return [
+            data["Seq"],
+            data["Dur"],
+            data["sHops"],
+            data["dHops"],
+            data["SrcPkts"],
+            data["TotBytes"],
+            data["SrcBytes"],
+            data["Offset"],
+            data["sMeanPktSz"],
+            data["dMeanPktSz"],
+            data["TcpRtt"],
+            data["AckDat"],
+            data["sTtl_"],
+            data["dTtl_"],
+            data["Proto_tcp"],
+            data["Proto_udp"],
+            data["Cause_Status"],
+            data["State_INT"]
+        ]
+        
+
+    # def predict_sample(self, features: List[float]) -> tuple:
+    #     """Predict anomaly probability for a single sample.
+        
+    #     Returns:
+    #         predicted_prob: The model's output probability (e.g., probability of attack).
+    #         anomaly_score: (Optional) Here we can use the same as predicted probability,
+    #                        or compute a difference from a baseline if available.
+    #     """
+    #     try:
+    #         sample = np.array(features).reshape(1, self.n_features)
+    #         if not self.scaler_fitted:
+    #             # Fit the scaler on the first sample (or ideally on training data)
+    #             self.scaler.fit(sample)
+    #             self.scaler_fitted = True
+    #         sample_scaled = self.scaler.transform(sample)
+    #         prediction = self.model.predict(sample_scaled, verbose=0)[0]
+    #         predicted_prob = prediction[0]  # Assuming a single output neuron with sigmoid
+    #         # For simplicity, we use predicted probability as the anomaly score
+    #         anomaly_score = predicted_prob  
+    #         return predicted_prob, anomaly_score
+    #     except Exception as e:
+    #         logger.error(f"Error in prediction: {e}")
+    #         raise
+
     def predict_sample(self, features: List[float]) -> tuple:
         """Predict anomaly probability for a single sample."""
         try:
