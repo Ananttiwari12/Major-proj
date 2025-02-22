@@ -13,7 +13,7 @@ model = tf.keras.models.load_model("neural_net_model.h5")
 scaler = joblib.load("scaler.pkl")
 
 # Load Test Data (assuming first column is an index, last column is label)
-df = pd.read_csv("TestData.csv")
+df = pd.read_csv("../TestData2.csv")
 X_test = df.iloc[:, 1:-1].values
 y_test = df.iloc[:, -1].values
 
