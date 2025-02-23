@@ -25,7 +25,7 @@ class NetworkMonitor:
         self.scaler = MinMaxScaler()
         self.model = self._load_model(model_path)
 
-        self.all_features = ['Seq', 'Dur', 'sHops', 'dHops', 'SrcPkts', 'TotBytes', 'SrcBytes', 'Offset', 'sMeanPktSz', 'dMeanPktSz', 'TcpRtt', 'AckDat', 'sTtl_', 'dTtl_', 'Attack Type_', 'Proto_tcp', 'Proto_udp', 'Cause_Status', 'State_INT']
+        self.all_features = ['Seq', 'Dur', 'sHops', 'dHops', 'SrcPkts', 'TotBytes', 'SrcBytes', 'Offset', 'sMeanPktSz', 'dMeanPktSz', 'TcpRtt', 'AckDat', 'sTtl_', 'dTtl_', 'Proto_tcp', 'Proto_udp', 'Cause_Status', 'State_INT']
 
         # Initialize deques for data storage
         max_points = 1000
