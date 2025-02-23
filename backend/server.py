@@ -47,16 +47,24 @@ async def websocket_monitor(websocket: WebSocket):
     try:
         while True:
             # Choose a random normal sample (where y_test == 0)
-            normal_samples = X_test_scaled[y_test == 0]
-            if len(normal_samples) == 0:
+            
+            sample= X_test[y_test==0]
+            
+            if len(sample) == 0:
                 await websocket.send_json({"error": "No normal samples found."})
                 return
-            sample = random.choice(normal_samples).reshape(1, -1)
-            prediction = model.predict(sample)[0][0]
+            
+            sample= random.choice(sample).reshape(1,-1)
+            normal_sample= scaler.transform(sample)
+            prediction = model.predict(normal_sample)[0][0]
+            
+            print(sample)
+            
             
             # The below code is written for debugging
             # if prediction > 0.5:
             #     prediction= random.uniform(0.0,0.49)
+            
                 
             result = {
                 "timestamp": datetime.now().isoformat(),
@@ -86,6 +94,10 @@ async def introduce_anomaly():
     index = random.choice(anomaly_indices)
     sample = X_test_scaled[index].reshape(1, -1)
     prediction = model.predict(sample)[0][0]
+    
+    non_scaled_sample= X_test[index].reshape(1,-1)
+    
+    # print(non_scaled_sample)
     
     # The below code is written for debugging
     

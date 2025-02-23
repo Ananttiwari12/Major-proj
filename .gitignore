@@ -4,3 +4,6 @@
 
 # datasets
 *.csv
+
+*.gguf
+5.2.2
