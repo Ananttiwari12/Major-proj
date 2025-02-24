@@ -64,4 +64,4 @@ async def heal(anomaly: str = Query(..., description="Observed 5G anomaly traffi
     except Exception as e:
         return {"error": f"LLM processing failed: {str(e)}"}
 
-# Run using: uvicorn llm_server:app --host 0.0.0.0 --port 8080 --reload
+# Run using: uvicorn server:app --host 0.0.0.0 --port 8080 --reload
