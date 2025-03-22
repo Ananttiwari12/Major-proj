@@ -9,7 +9,7 @@ import random
 from datetime import datetime
 
 # Load Model and Scaler
-model = tf.keras.models.load_model("neural_net_model.h5")
+model = tf.keras.models.load_model("../neural_net_model.h5")
 scaler = joblib.load("scaler.pkl")
 
 # Load Test Data (assuming first column is an index, last column is label)
