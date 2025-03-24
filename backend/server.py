@@ -7,6 +7,7 @@ import joblib
 import asyncio
 import random
 from datetime import datetime
+import httpx  # For making async HTTP requests to LLM server
 
 # Load Model and Scaler
 model = tf.keras.models.load_model("neural_net_model.h5")
@@ -104,12 +105,24 @@ async def introduce_anomaly():
     # if prediction < 0.5:
     #     prediction= random.uniform(0.51,1.0)
     
-    
     anomaly_result = {
         "timestamp": datetime.now().isoformat(),
         "probability": float(prediction),
         "anomaly": 1.0
     }
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response= client.get(f"http://localhost:8080/heal?anomaly={non_scaled_sample}")
+            if response.status_code==200:
+                mitigation_strategy= response.json()
+                anomaly_result["mitigation"]=mitigation_strategy
+            else:
+                anomaly_result["mitigation"]="failed to get mitigation response from the server.."
+        
+        except Exception as e:
+            anomaly_result["mitigation"]=f"Error: {str(e)}"
+    
     # Broadcast anomaly data
     for connection in list(active_connections):
         try:
