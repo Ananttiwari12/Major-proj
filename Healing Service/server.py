@@ -3,16 +3,30 @@ from fastapi.middleware.cors import CORSMiddleware
 from langchain.llms import LlamaCpp
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
+import os
+import guardrails as gr
 
-# Load Phi-3 Model
-llm = LlamaCpp(
-    model_path="D:/Intrusion_det/Healing Service/Phi-3-mini-4k-instruct-q4.gguf",
-    n_gpu_layers=-1,
-    max_tokens=500,
-    n_ctx=2048,
-    seed=42,
-    verbose=True  # Set to True for debugging, can be False in production
-)
+llm= None
+MODEL_PATH= "D:/Intrusion_det/Healing Service/Phi-3-mini-4k-instruct-q4.gguf"
+
+if os.path.exists(MODEL_PATH):
+    try:
+        # Load Phi-3 Model
+        llm = LlamaCpp(
+            model_path=MODEL_PATH,
+            n_gpu_layers=-1,
+            max_tokens=500,
+            n_ctx=2048,
+            seed=42,
+            verbose=True  # Set to True for debugging, can be False in production
+        )
+    except Exception as e:
+        print(f"Failed to load model: {str(e)}")    
+        
+else:
+    print("Model file not found")
+
+
 
 # Define Prompt Template
 template = """<s><|user|>
@@ -34,7 +48,23 @@ Please only respond with the best suitable mitigation strategy from the list.
 
 <|assistant|>"""
 title_prompt = PromptTemplate(template=template, input_variables=["anomaly"])
-title_chain = LLMChain(llm=llm, prompt=title_prompt, output_key="heal")
+title_chain = LLMChain(llm=llm, prompt=title_prompt, output_key="heal") if llm else None
+
+# Define Guardrails RailSpec
+rail_spec = """
+<rail version="0.1">
+    <output>
+        <string 
+            name="mitigation_strategy"
+            description="The best-suited strategy for handling the anomaly."
+            format="one_of"
+            options="['Automated Traffic Blocking (Block IP)', 'Rate Limiting and Throttling', 'Sandbox Execution', 'Zero Trust Network Access']"
+        />
+    </output>
+</rail>
+"""
+
+guard = gr.Guard.for_rail_string(rail_spec)
 
 # Initialize FastAPI App
 app = FastAPI()
@@ -57,10 +87,19 @@ async def heal(anomaly: str = Query(..., description="Observed 5G anomaly traffi
     """
     Receives an anomaly sample and returns a mitigation strategy.
     """
+    
+    if title_chain is None:
+        return {"error": "LLM model failed to load. Please check the model path."}
+    
     try:
-        # Ensure the anomaly is formatted correctly
-        response = await title_chain.arun(anomaly=anomaly)
-        return {"mitigation_strategy": response.strip()}
+        response = title_chain.invoke(input=anomaly)
+        response_send= response["heal"]
+        validated_response = guard.parse({"mitigation_strategy": response_send})
+        return {"mitigation_strategy": validated_response.strip()}
+    
+    except gr.exceptions.ValidationError as ve:
+        return {"error": "LLM returned an invalid response", "details": str(ve)}
+    
     except Exception as e:
         return {"error": f"LLM processing failed: {str(e)}"}
 
