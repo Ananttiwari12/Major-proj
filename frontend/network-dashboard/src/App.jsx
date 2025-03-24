@@ -1,4 +1,3 @@
-// src/App.jsx
 import { useState, useEffect } from "react";
 import {
   LineChart,
@@ -13,17 +12,15 @@ import "./App.css";
 
 function App() {
   const [data, setData] = useState([]);
+  const [mitigation, setMitigation] = useState(""); // Store mitigation response
 
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:8000/ws/monitor");
 
-    ws.onopen = () => {
-      console.log("Connected to WebSocket");
-    };
+    ws.onopen = () => console.log("Connected to WebSocket");
 
-    ws.onmessage = (event) => {
+    ws.onmessage = async (event) => {
       const newData = JSON.parse(event.data);
-      // Append new data point and limit to last 50 points
       setData((prevData) =>
         [
           ...prevData,
@@ -33,15 +30,15 @@ function App() {
           },
         ].slice(-50)
       );
+
+      // If anomaly detected, display mitigation strategy
+      if (newData.anomaly === 1) {
+        setMitigation(newData["mitigation"]); // Update state with LLM response
+      }
     };
 
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    ws.onclose = () => {
-      console.log("WebSocket connection closed");
-    };
+    ws.onerror = (error) => console.error("WebSocket error:", error);
+    ws.onclose = () => console.log("WebSocket connection closed");
 
     return () => ws.close();
   }, []);
@@ -75,7 +72,15 @@ function App() {
           />
         </LineChart>
       </ResponsiveContainer>
+
       <button onClick={introduceAnomaly}>Introduce Anomaly</button>
+
+      {mitigation && (
+        <div className="mitigation-box">
+          <h3>Mitigation Response:</h3>
+          <p>{mitigation}</p>
+        </div>
+      )}
     </div>
   );
 }
