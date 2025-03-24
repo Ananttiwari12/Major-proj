@@ -10,7 +10,7 @@ from datetime import datetime
 import httpx  # For making async HTTP requests to LLM server
 
 # Load Model and Scaler
-model = tf.keras.models.load_model("neural_net_model.h5")
+model = tf.keras.models.load_model("../neural_net_model.h5")
 scaler = joblib.load("scaler.pkl")
 
 # Load Test Data (assuming first column is an index, last column is label)
