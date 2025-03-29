@@ -15,3 +15,9 @@ run-healing-server:
 	@echo Starting healing server
 	cd 'Healing Service' && \
 	uvicorn server:app --host 0.0.0.0 --port 8080 --reload
+
+.PHONY: run-azure-healing-server
+run-azure-healing-server:
+	@echo Starting azure healing server
+	cd 'Healing Service' && \
+	uvicorn server2:app --host 0.0.0.0 --port 8080 --reload
