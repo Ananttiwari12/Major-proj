@@ -48,7 +48,7 @@ async def websocket_monitor(websocket: WebSocket):
     try:
         while True:
             # Choose a random normal sample (where y_test == 0)
-            
+
             sample= X_test[y_test==0]
             
             if len(sample) == 0:
@@ -58,14 +58,6 @@ async def websocket_monitor(websocket: WebSocket):
             sample= random.choice(sample).reshape(1,-1)
             normal_sample= scaler.transform(sample)
             prediction = model.predict(normal_sample)[0][0]
-            
-            print(sample)
-            
-            
-            # The below code is written for debugging
-            # if prediction > 0.5:
-            #     prediction= random.uniform(0.0,0.49)
-            
                 
             result = {
                 "timestamp": datetime.now().isoformat(),
@@ -98,30 +90,26 @@ async def introduce_anomaly():
     
     non_scaled_sample= X_test[index].reshape(1,-1)
     
-    # print(non_scaled_sample)
-    
-    # The below code is written for debugging
-    
-    # if prediction < 0.5:
-    #     prediction= random.uniform(0.51,1.0)
-    
     anomaly_result = {
         "timestamp": datetime.now().isoformat(),
         "probability": float(prediction),
         "anomaly": 1.0
     }
+    anomaly_result["sample"]=str(non_scaled_sample)
     
-    async with httpx.AsyncClient() as client:
-        try:
-            response= client.get(f"http://localhost:8080/heal?anomaly={non_scaled_sample}")
-            if response.status_code==200:
-                mitigation_strategy= response.json()
-                anomaly_result["mitigation"]=mitigation_strategy
-            else:
-                anomaly_result["mitigation"]="failed to get mitigation response from the server.."
+    # async with httpx.AsyncClient() as client:
+    #     str_sample= str(non_scaled_sample)
+    #     try:
+    #         uri= "http://localhost:8080/heal?anomaly=too much ip packet"
+    #         response=await client.get(uri)
+    #         if response.status_code==200:
+    #             mitigation_strategy= response.json()
+    #             anomaly_result["mitigation"]=mitigation_strategy
+    #         else:
+    #             anomaly_result["mitigation"]="failed to get mitigation response from the server.."
         
-        except Exception as e:
-            anomaly_result["mitigation"]=f"Error: {str(e)}"
+    #     except Exception as e:
+    #         anomaly_result["mitigation"]=f"Error: {str(e)}"
     
     # Broadcast anomaly data
     for connection in list(active_connections):
