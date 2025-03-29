@@ -12,7 +12,7 @@ import "./App.css";
 
 function App() {
   const [data, setData] = useState([]);
-  const [mitigation, setMitigation] = useState(""); // Store mitigation response
+  const [mitigation, setMitigation] = useState("");
 
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:8000/ws/monitor");
@@ -20,21 +20,24 @@ function App() {
     ws.onopen = () => console.log("Connected to WebSocket");
 
     ws.onmessage = async (event) => {
-      const newData = JSON.parse(event.data);
+      const _data = JSON.parse(event.data);
+
+      if (_data.anomaly === 1) {
+        const mitigation_response = await fetch(
+          `http://localhost:8080/heal?anomaly=${_data["sample"]}`
+        );
+        const mitigationResponse = await mitigation_response.text();
+        setMitigation(mitigationResponse);
+      }
       setData((prevData) =>
         [
           ...prevData,
           {
-            time: new Date(newData.timestamp).toLocaleTimeString(),
-            probability: newData.probability,
+            time: new Date(_data.timestamp).toLocaleTimeString(),
+            probability: _data.probability,
           },
         ].slice(-50)
       );
-
-      // If anomaly detected, display mitigation strategy
-      if (newData.anomaly === 1) {
-        setMitigation(newData["mitigation"]); // Update state with LLM response
-      }
     };
 
     ws.onerror = (error) => console.error("WebSocket error:", error);
@@ -53,6 +56,10 @@ function App() {
     } catch (error) {
       console.error("Error introducing anomaly:", error);
     }
+  };
+
+  const clear_response = async () => {
+    setMitigation("");
   };
 
   return (
