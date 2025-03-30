@@ -42,7 +42,8 @@ Available strategies:
 3. Sandbox Execution
 4. Zero Trust Network Access
 
-Anomaly Data: {anomaly}
+[Seq,Dur,sHops,dHops,SrcPkts,TotBytes,SrcBytes,Offset,sMeanPktSz,dMeanPktSz,TcpRtt,AckDat,sTtl_,dTtl_,Proto_tcp,Proto_udp,Cause_Status,State_INT]
+= {anomaly}
 
 Provide only the most appropriate strategy from the list.
 """

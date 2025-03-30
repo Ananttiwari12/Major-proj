@@ -41,6 +41,7 @@ Available strategies:
 4. Zero Trust Network Access
 
 The anomaly traffic data is: 
+[Seq,Dur,sHops,dHops,SrcPkts,TotBytes,SrcBytes,Offset,sMeanPktSz,dMeanPktSz,TcpRtt,AckDat,sTtl_,dTtl_,Proto_tcp,Proto_udp,Cause_Status,State_INT]
 
 {anomaly}
 
