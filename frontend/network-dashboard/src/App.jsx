@@ -23,12 +23,25 @@ function App() {
       const _data = JSON.parse(event.data);
 
       if (_data.anomaly === 1) {
-        const mitigation_response = await fetch(
-          `http://localhost:8080/heal?anomaly=${_data["sample"]}`
-        );
-        const mitigationResponse = await mitigation_response.text();
-        setMitigation(mitigationResponse);
+        try {
+          const mitigation_response = await fetch(
+            `http://localhost:8080/heal?anomaly=${encodeURIComponent(
+              _data["sample"]
+            )}`
+          );
+
+          if (!mitigation_response.ok) {
+            throw new Error(`Server Error: ${mitigation_response.statusText}`);
+          }
+
+          const mitigationResponse = await mitigation_response.text();
+          setMitigation(mitigationResponse);
+        } catch (e) {
+          console.error("Failed to get response from LLM:", e);
+          setMitigation(`Error: ${e.message}`);
+        }
       }
+
       setData((prevData) =>
         [
           ...prevData,
@@ -51,6 +64,11 @@ function App() {
       const response = await fetch("http://localhost:8000/introduce_anomaly", {
         method: "POST",
       });
+
+      if (!response.ok) {
+        throw new Error(`Server Error: ${response.statusText}`);
+      }
+
       const result = await response.json();
       console.log("Anomaly introduced:", result);
     } catch (error) {
@@ -58,7 +76,7 @@ function App() {
     }
   };
 
-  const clear_response = async () => {
+  const clear_response = () => {
     setMitigation("");
   };
 
