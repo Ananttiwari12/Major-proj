@@ -10,100 +10,129 @@ import {
 } from "recharts";
 import "./App.css";
 
+const featureNames = [
+  "Seq",
+  "Dur",
+  "sHops",
+  "dHops",
+  "SrcPkts",
+  "TotBytes",
+  "SrcBytes",
+  "Offset",
+  "sMeanPktSz",
+  "dMeanPktSz",
+  "TcpRtt",
+  "AckDat",
+  "sTtl_",
+  "dTtl_",
+  "Proto_tcp",
+  "Proto_udp",
+  "Cause_Status",
+  "State_INT",
+];
+
 function App() {
-  const [data, setData] = useState([]);
+  const [chartData, setChartData] = useState([]);
+  const [anomalyData, setAnomalyData] = useState(null);
   const [mitigation, setMitigation] = useState("");
-
-  useEffect(() => {
-    const ws = new WebSocket("ws://localhost:8000/ws/monitor");
-
-    ws.onopen = () => console.log("Connected to WebSocket");
-
-    ws.onmessage = async (event) => {
-      const _data = JSON.parse(event.data);
-
-      if (_data.anomaly === 1) {
-        try {
-          const mitigation_response = await fetch(
-            `http://localhost:8080/heal?anomaly=${encodeURIComponent(
-              _data["sample"]
-            )}`
-          );
-
-          if (!mitigation_response.ok) {
-            throw new Error(`Server Error: ${mitigation_response.statusText}`);
-          }
-
-          const mitigationResponse = await mitigation_response.text();
-          setMitigation(mitigationResponse);
-        } catch (e) {
-          console.error("Failed to get response from LLM:", e);
-          setMitigation(`Error: ${e.message}`);
-        }
-      }
-
-      setData((prevData) =>
-        [
-          ...prevData,
-          {
-            time: new Date(_data.timestamp).toLocaleTimeString(),
-            probability: _data.probability,
-          },
-        ].slice(-50)
-      );
-    };
-
-    ws.onerror = (error) => console.error("WebSocket error:", error);
-    ws.onclose = () => console.log("WebSocket connection closed");
-
-    return () => ws.close();
-  }, []);
 
   const introduceAnomaly = async () => {
     try {
-      const response = await fetch("http://localhost:8000/introduce_anomaly", {
+      await fetch("http://localhost:8000/introduce_anomaly", {
         method: "POST",
       });
-
-      if (!response.ok) {
-        throw new Error(`Server Error: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log("Anomaly introduced:", result);
     } catch (error) {
       console.error("Error introducing anomaly:", error);
     }
   };
 
-  const clear_response = () => {
+  const clearData = () => {
+    setAnomalyData(null);
     setMitigation("");
   };
 
-  return (
-    <div className="container">
-      <h1>Network Monitoring Dashboard</h1>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="time" tick={{ fontSize: 12 }} />
-          <YAxis domain={[0, 1]} tick={{ fontSize: 12 }} />
-          <Tooltip />
-          <Line
-            type="monotone"
-            dataKey="probability"
-            stroke="#ff7300"
-            dot={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+  useEffect(() => {
+    const ws = new WebSocket("ws://localhost:8000/ws/monitor");
 
-      <button onClick={introduceAnomaly}>Introduce Anomaly</button>
+    ws.onmessage = async (event) => {
+      const data = JSON.parse(event.data);
+
+      // Update chart
+      setChartData((prev) => [
+        ...prev.slice(-49),
+        {
+          time: new Date(data.timestamp).toLocaleTimeString(),
+          probability: data.probability,
+        },
+      ]);
+
+      // Handle anomaly
+      if (data.anomaly === 1) {
+        setAnomalyData(data.features);
+        try {
+          const response = await fetch(
+            `http://localhost:8080/heal?anomaly=${encodeURIComponent(
+              JSON.stringify(data.features)
+            )}`
+          );
+          setMitigation(await response.text());
+        } catch (error) {
+          setMitigation(`Error: ${error.message}`);
+        }
+      }
+    };
+
+    return () => ws.close();
+  }, []);
+
+  return (
+    <div className="app-container">
+      <h1>Network Traffic Anomaly Detection</h1>
+
+      <div className="chart-container">
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="time" />
+            <YAxis domain={[0, 1]} />
+            <Tooltip />
+            <Line
+              type="monotone"
+              dataKey="probability"
+              stroke="#ff7300"
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="controls">
+        <button onClick={introduceAnomaly}>Trigger Anomaly</button>
+        <button onClick={clearData}>Clear</button>
+      </div>
 
       {mitigation && (
-        <div className="mitigation-box">
-          <h3>Mitigation Response:</h3>
-          <p>{mitigation}</p>
+        <div className="mitigation-panel">
+          <h3>Recommended Mitigation</h3>
+          <div className="mitigation-text">{mitigation}</div>
+        </div>
+      )}
+
+      {anomalyData && (
+        <div className="anomaly-panel">
+          <h3>Anomaly Features</h3>
+          <div className="features-grid">
+            {featureNames.map((name) => (
+              <div key={name} className="feature-item">
+                <span className="feature-name">{name}</span>
+                <span className="feature-value">
+                  {typeof anomalyData[name] === "number"
+                    ? anomalyData[name].toFixed(6)
+                    : anomalyData[name]}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
