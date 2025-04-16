@@ -66,8 +66,8 @@ async def heal(anomaly):
         )
 
         # Extract response text
-        strategy = response.choices[0].message.content.strip()
-        return {"mitigation_strategy": strategy}
+        strategy = response.choices[0].message.content
+        return {strategy}
     
     except Exception as e:
         return {"error": f"LLM processing failed: {str(e)}"}
