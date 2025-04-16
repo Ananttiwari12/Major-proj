@@ -3,8 +3,36 @@ from fastapi import FastAPI
 import psutil
 from fastapi.middleware.cors import CORSMiddleware
 import socket
+import threading
+from contextlib import asynccontextmanager
+import speedtest
+import time
 
-app = FastAPI()
+cached_speeds={"upload":0.0, "download":0.0}
+
+def update_speedtest():
+    while True:
+        try:
+            st= speedtest.Speedtest()
+            st.get_best_server()
+            upload_speed= st.upload()
+            download_speed= st.download()
+            cached_speeds["upload"]= round(upload_speed/(1024*1024),2)
+            cached_speeds["download"]= round(download_speed/(1024*1024),2)
+        
+        except Exception as e:
+            print(f"speedTest Error: {e}")
+        
+        time.sleep(60)
+
+
+@asynccontextmanager
+async def lifespan(app:FastAPI):
+    threading.Thread(target=update_speedtest, daemon=True).start()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,13 +47,10 @@ def get_metrics():
     return {
         "cpu": psutil.cpu_percent(),
         "memory": psutil.virtual_memory().percent,
-        "upload": get_network_throughput("upload"),
-        "download": get_network_throughput("download"),
+        "upload": cached_speeds["upload"],
+        "download": cached_speeds["download"],
         "services": check_services()
     }
-
-def get_network_throughput(direction):
-    return round(random.uniform(10, 100), 1)
 
 def check_services():
     return {
