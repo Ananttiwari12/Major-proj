@@ -8,3 +8,6 @@
 *.gguf
 5.2.2
 .env
+
+# File for testing the response of LLM [Absolutely unnecessary but necessary :)]
+TestLLM.ipynb
