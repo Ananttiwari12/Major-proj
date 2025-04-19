@@ -6,6 +6,9 @@ from openai import AzureOpenAI
 from dotenv import load_dotenv
 import json
 import requests
+import httpx
+from functools import partial
+import asyncio
 
 app = FastAPI()
 
@@ -25,6 +28,7 @@ API_KEY=os.getenv("API_KEY")
 API_VERSION=os.getenv("API_VERSION")
 MODEL=os.getenv("MODEL")
 RAG_PORT= os.getenv("RAG_PORT")
+
 DEFAULT_CONTEXT = "Security features extracted from 5G network traffic logs for anomaly detection."
 
 # Define the healing prompt template
@@ -61,15 +65,16 @@ IMPORTANT CONSTRAINTS:
 - Commands must follow 5G network protocols and standards (3GPP TS 23.501, TS 23.502)
 - Responses must be specific to 5G networks (AMF, SMF, UPF, gNB components)
 """
-    
-def get_rag_context():
+
+async def get_rag_context():
     try:
-        response= requests.get(f"http://localhost:{RAG_PORT}/get_context", timeout=2)
-        if response.status_code==200:
-            return response.json().get("context", DEFAULT_CONTEXT)
-    
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            response = await client.get(f"http://localhost:{RAG_PORT}/context")
+            if response.status_code == 200:
+                return response.json().get("context", DEFAULT_CONTEXT)
     except:
         return DEFAULT_CONTEXT
+
 
 @app.get("/")
 async def root():
@@ -91,16 +96,19 @@ async def heal(anomaly):
         )
 
         # Call Azure OpenAI GPT model
-        response = client_.chat.completions.create(
-            model=MODEL,
-            messages=[
-                {"role": "system", "content": "You are a 5G network security expert."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=500
-        )
-
+        def call_openai(prompt):    
+            return client_.chat.completions.create(
+                model=MODEL,
+                messages=[
+                    {"role": "system", "content": "You are a 5G network security expert."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=500
+            )
+           
+        
+        response= await asyncio.to_thread(partial(call_openai, prompt))
         # Extract response text
         strategy = response.choices[0].message.content
         return {strategy}
