@@ -12,3 +12,6 @@
 # File for testing the response of LLM [Absolutely unnecessary but necessary :)]
 TestLLM.ipynb
 *.pdf
+
+__pycache__/
+
